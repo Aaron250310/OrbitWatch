@@ -17,11 +17,11 @@ const B=[
 ["Uranus",25362,"2k_uranus.jpg",-17.24,[19.18916464,-0.00196176,0.04725744,-0.00004397,0.77263783,-0.00242939,313.23810451,428.48202785,170.9542763,0.40805281,74.01692503,0.04240589]],
 ["Neptune",24622,"2k_neptune.jpg",16.11,[30.06992276,0.00026291,0.00859048,0.00005105,1.77004347,0.00035372,-55.12002969,218.45945325,44.96476227,-0.32241464,131.78422574,-0.00508664]]];
 // moon, parent index, semi-major axis km, period days, radius km, texture
-const M=[["Moon",2,384400,27.3217,1737,"2k_moon.jpg"],["Phobos",3,9376,.3189,11],["Deimos",3,23463,1.263,6],
-["Io",4,421700,1.769,1822],["Europa",4,671034,3.551,1561],["Ganymede",4,1070412,7.155,2634],["Callisto",4,1882709,16.689,2410],
-["Mimas",5,185539,.942,198],["Enceladus",5,238037,1.37,252],["Tethys",5,294619,1.888,533],["Dione",5,377396,2.737,562],["Rhea",5,527108,4.518,764],["Titan",5,1221870,15.945,2575],["Iapetus",5,3560820,79.33,735],
-["Miranda",6,129390,1.413,236],["Ariel",6,191020,2.52,579],["Umbriel",6,266300,4.144,585],["Titania",6,435910,8.706,789],["Oberon",6,583520,13.463,761],
-["Triton",7,354759,5.877,1353]];
+const M=[["Moon",2,384400,27.3217,1737,"moon/moon.jpg"],["Phobos",3,9376,.3189,11,"moon/phobos.jpg"],["Deimos",3,23463,1.263,6,"moon/deimos.jpg"],
+["Io",4,421700,1.769,1822,"moon/io.png"],["Europa",4,671034,3.551,1561,"moon/europa.jpg"],["Ganymede",4,1070412,7.155,2634,"moon/ganymede.jpg"],["Callisto",4,1882709,16.689,2410,"moon/callisto.jpg"],
+["Mimas",5,185539,.942,198,"moon/mimas.jpg"],["Enceladus",5,238037,1.37,252,"moon/enceladus.jpg"],["Tethys",5,294619,1.888,533,"moon/tethys.jpg"],["Dione",5,377396,2.737,562,"moon/dione.jpg"],["Rhea",5,527108,4.518,764,"moon/rhea.jpg"],["Titan",5,1221870,15.945,2575,"moon/titan.png"],["Iapetus",5,3560820,79.33,735,"moon/iapetus.jpg"],
+["Miranda",6,129390,1.413,236,"moon/miranda.jpg"],["Ariel",6,191020,2.52,579,"moon/ariel.jpg"],["Umbriel",6,266300,4.144,585,"moon/umbriel.jpg"],["Titania",6,435910,8.706,789,"moon/titania.jpg"],["Oberon",6,583520,13.463,761,"moon/oberon.jpg"],
+["Triton",7,354759,5.877,1353,"moon/triton.jpg"]];
 
 /* ---------- renderer / scene ---------- */
 const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:"high-performance"});
@@ -51,7 +51,7 @@ void main(){
  vec3 Ng=normalize(n),V=normalize(cameraPosition-w),N=Ng;
  vec4 t=texture2D(day,u);vec3 alb=lin(t.rgb);
  float ocean=oc>.5?smoothstep(0.,.12,t.b-max(t.r,t.g)*1.1+.05):0.;
- if(bump>0.){float h=dot(t.rgb,vec3(.3,.59,.11)),bs=bump*(1.-ocean);vec3 sx=dFdx(w),sy=dFdy(w),r1=cross(sy,N),r2=cross(N,sx);float det=dot(sx,r1);vec3 g=sign(det)*(dFdx(h)*r1+dFdy(h)*r2);N=normalize(abs(det)*N-bs*g);}
+ if(bump>0.){float h=dot(t.rgb,vec3(.3,.59,.11)),bs=bump*(1.-ocean);vec2 fw=fwidth(u);bs*=1.-smoothstep(.0007,.0035,max(fw.x,fw.y));vec3 sx=dFdx(w),sy=dFdy(w),r1=cross(sy,N),r2=cross(N,sx);float det=dot(sx,r1);vec3 g=dFdx(h)*r1+dFdy(h)*r2;float gl=length(g);if(gl>0.)g*=min(gl,.6)/gl;N=normalize(abs(det)*N-sign(det)*bs*g);}
  float dg=dot(Ng,sun),d=dot(N,sun),wr=.2*ak,lit=clamp((d+wr)/(1.+wr),0.,1.)*smoothstep(-.1,.08,dg);
  float cld=0.,cs=0.;if(cl>.5){cld=texture2D(clouds,u).r;cs=texture2D(clouds,u+vec2(.0022,-.0012)).r;}
  vec3 col=alb*lit*(1.-.45*cs);
@@ -92,7 +92,7 @@ function halo(H,col,k){const m=new THREE.Mesh(new THREE.SphereGeometry(1+H*9,96,
  vertexShader:"varying vec3 w;void main(){w=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
  fragmentShader:"uniform vec3 sun,col;uniform float H,k;varying vec3 w;void main(){vec3 dir=normalize(w-cameraPosition);vec3 pc=cameraPosition-dir*dot(cameraPosition,dir);float b=length(pc);if(b<1.)discard;float e=exp(-(b-1.)/H),l=dot(normalize(pc),sun),day=smoothstep(-.35,.45,l),fs=pow(max(dot(dir,sun),0.),5.);vec3 tint=mix(vec3(1.,.38,.12),col,smoothstep(-.05,.5,l));gl_FragColor=vec4(tint*e*k*(day*.9+fs*2.5),1.);}"}));atmos.push(m);return m}
 const POLE=[[281.01,61.45],[272.76,67.16],null,[317.68,52.89],[268.06,64.5],[40.59,83.54],[257.31,-15.18],[299.36,43.46]]; // spin-axis RA/Dec (J2000)
-const PRM=[{bump:.02},{ak:1.1,atm:0xffcc88,H:.02,k:1},{ocean:1,night:1,clouds:1,bump:.006,ak:1,atm:0x5f9bff,H:.012,k:.9},{bump:.02,ak:.35,atm:0xd9a07a,H:.01,k:.35},
+const PRM=[{bump:.02},{ak:1.1,atm:0xffcc88,H:.02,k:1},{ocean:1,night:1,clouds:1,bump:.006,ak:1,atm:0x5f9bff,H:.012,k:.9},{bump:.009,ak:.35,atm:0xd9a07a,H:.01,k:.35},
   {ak:.35,atm:0xcdb593,H:.012,k:.2},{ak:.35,atm:0xd9c08c,H:.012,k:.2},{ak:.6,atm:0x7fdfff,H:.02,k:.7},{ak:.6,atm:0x4a66ff,H:.02,k:.8}];
 const loc={};
 function disposeLocal(k){const g=loc[k];scene.remove(g);g.traverse(o=>{const ix=atmos.indexOf(o);if(ix>=0)atmos.splice(ix,1);if(o.geometry)o.geometry.dispose();const m=o.material;
@@ -103,9 +103,10 @@ function getLocal(i){
     tilt.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),new THREE.Vector3(x,-y*.3978+z*.9175,-(y*.9175+z*.3978)).normalize())}
   const body=new THREE.Mesh(new THREE.SphereGeometry(1,160,96),planetMat(Object.assign({day:TP(i==2?r+"earth_daymap.jpg":LQ?B[i][2]:HI[i])},P,i==2?{night:TP(r+"earth_nightmap.jpg"),clouds:TP(r+"earth_clouds.jpg")}:{})));
   g.body=body;tilt.add(body);if(i==5)tilt.add(ring(1.15,2.41,1));if(P.H)tilt.add(halo(P.H,P.atm,P.k));
-  g.moons=M.filter(m=>m[1]==i).map(m=>{const mesh=new THREE.Mesh(new THREE.SphereGeometry(Math.max(m[4]/B[i][1],.012),48,32),m[5]?planetMat({day:TP(m[5]),bump:.02}):new THREE.MeshLambertMaterial({color:0x9a958c}));tilt.add(mesh);return{d:m,mesh,w:new THREE.Vector3()}});
+  g.moons=M.filter(m=>m[1]==i).map(m=>{const mesh=new THREE.Mesh(new THREE.SphereGeometry(Math.max(m[4]/B[i][1],.012),64,48),m[5]?planetMat({day:TP(m[5]),bump:.012}):new THREE.MeshLambertMaterial({color:0x9a958c}));tilt.add(mesh);return{d:m,mesh,w:new THREE.Vector3()}});
   g.mp=new THREE.Points(new THREE.BufferGeometry().setFromPoints(g.moons.map(()=>new THREE.Vector3())),new THREE.PointsMaterial({color:0xffffff,size:6,sizeAttenuation:false,map:dot,alphaTest:.4,transparent:true}));g.mp.frustumCulled=false;tilt.add(g.mp);
   g.sp=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({color:0xffb347,size:7,sizeAttenuation:false,map:dot,alphaTest:.4,transparent:true}));g.sp.frustumCulled=false;g.add(g.sp);
+  g.rv=SURF.map((r,k)=>r[1]==i?k:-1).filter(k=>k>=0).map(k=>{const r=SURF[k],m=new THREE.Mesh(new THREE.SphereGeometry(.01,8,6),new THREE.MeshBasicMaterial({color:0x5be3a0}));m.position.copy(surfPos(r[2],r[3],1.004));tilt.add(m);return{k,mesh:m,w:new THREE.Vector3()}});
   return loc[i]=g}
 function moonVec(m,days,o){const d=m[2]/B[m[1]][1];
   if(m[0]=="Moon"){const lon=(218.316+13.176396*days)*D2R,lat=5.145*D2R*Math.sin(lon-(125.04-0.0529539*days)*D2R),xe=Math.cos(lat)*Math.cos(lon),ye=Math.cos(lat)*Math.sin(lon),ze=Math.sin(lat),ce=.9175,se=.3978;
@@ -113,9 +114,21 @@ function moonVec(m,days,o){const d=m[2]/B[m[1]][1];
   const a=((m[2]%360)+360*days/m[3])*D2R;return o.set(Math.cos(a)*d,0,-Math.sin(a)*d)}
 
 /* ---------- procedural satellite models ---------- */
+// a handful of recognisable spacecraft get their real NASA model, fetched once and cached; everything else keeps the generic procedural stand-in below
+const REAL=[[/ISS|ZARYA/,"iss.glb",.022],[/HST|HUBBLE/,"hubble.glb",.016],[/JAMES WEBB|JWST/,"jwst.glb",.02],[/^JUNO/,"juno.glb",.016],[/MARS RECONNAISSANCE|^MRO/,"mro.glb",.016],
+  [/^VOYAGER/,"voyager.glb",.014],[/PERSEVERANCE/,"perseverance.glb",.012]]; // bounding size in world units (1 = Earth's radius), matched to the procedural models' visible size
+const gltfLoader=typeof THREE.GLTFLoader=="function"?new THREE.GLTFLoader():null,realCache={};
+function realModelFor(name){const n=name.toUpperCase();for(const[re,file,scale]of REAL)if(re.test(n))return[file,scale];return null}
+function loadReal(file){if(realCache[file])return realCache[file];
+  return realCache[file]=new Promise(res=>{if(!gltfLoader)return res(null);
+    gltfLoader.load("models/"+file,g=>{const o=g.scene||g.scenes[0],box=new THREE.Box3().setFromObject(o),c=box.getCenter(new THREE.Vector3()),s=box.getSize(new THREE.Vector3());
+      o.position.sub(c);const wrap=new THREE.Group();wrap.add(o);wrap.userData.size=Math.max(s.x,s.y,s.z)||1;res(wrap)},undefined,()=>res(null))})}
+function attachReal(group,name){const r=realModelFor(name);if(!r)return;const[file,scale]=r;
+  loadReal(file).then(real=>{if(!real||group.userData.dead)return;const m=real.clone();const k=scale/(real.userData.size||1);m.scale.setScalar(k);group.add(m);group.userData.hasReal=true})}
 const MT=c=>new THREE.MeshLambertMaterial({color:c}),box=(w,h,d,c,x=0,y=0,z=0)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),MT(c));m.position.set(x,y,z);return m};
 const cyl=(r,l,c,x=0,y=0,z=0)=>{const g=new THREE.CylinderGeometry(r,r,l,16);g.rotateX(Math.PI/2);const m=new THREE.Mesh(g,MT(c));m.position.set(x,y,z);return m};
 function makeModel(s){const n=s.name.toUpperCase(),g=new THREE.Group(),P=0x1e3f8f,GOLD=0xd9b34a;
+  if(realModelFor(n)){attachReal(g,n);return g} // real NASA model loads in asynchronously; nothing else to build here
   if(s.sc){const d=new THREE.Mesh(new THREE.SphereGeometry(.14,16,8),MT(0xffffff));d.scale.set(1,.3,1);d.position.y=.14;g.add(box(.18,.18,.24,0xc9c9c9),box(.7,.008,.2,0x1e3f8f,.45,0,0),box(.7,.008,.2,0x1e3f8f,-.45,0,0),d)}
   else if(s.deb)g.add(box(.3,.1,.2,0x8a8a8a),box(.1,.14,.1,0x6a6a6a,.14,.06,0));
   else if(/ISS|ZARYA|CSS|TIANHE|TIANGONG/.test(n)){g.add(box(1,.03,.03,0xcccccc),cyl(.06,.55,0xe8e8e8),cyl(.05,.3,0xdddddd,0,0,.4));for(const x of[-.44,-.3,.3,.44])g.add(box(.1,.008,.3,0xc8a032,x,0,.2),box(.1,.008,.3,0xc8a032,x,0,-.2))}
@@ -125,6 +138,21 @@ function makeModel(s){const n=s.name.toUpperCase(),g=new THREE.Group(),P=0x1e3f8
   else g.add(box(.16,.16,.22,GOLD),box(.45,.008,.16,P,.32,0,0),box(.45,.008,.16,P,-.32,0,0),cyl(.012,.12,0xaaaaaa,0,.12,0));
   g.scale.setScalar(0.016);return g}
 const marker=new THREE.Mesh(new THREE.SphereGeometry(0.018,12,8),new THREE.MeshBasicMaterial({color:0xffb347}));marker.visible=false;scene.add(marker);
+// surface rovers/landers: display name, planet index, lat, lon (deg), operator, landed, status, purpose
+const SURF=[["Curiosity rover",3,-4.59,137.44,"NASA (USA)","2011-11-26","Active","Mars surface geology and habitability (Gale crater)"],
+["Perseverance rover",3,18.44,77.45,"NASA (USA)","2020-07-30","Active","Mars surface astrobiology and sample caching (Jezero crater)"],
+["Zhurong rover",3,25.1,109.9,"CNSA (China)","2021-05-15","Contact lost 2022","Mars surface imaging and soil study (Utopia Planitia)"],
+["InSight lander",3,4.5,135.6,"NASA (USA)","2018-11-26","Mission ended 2022","Mars seismology and interior structure"],
+["Chandrayaan-3 (Vikram lander / Pragyan rover)",2,-69.37,32.32,"ISRO (India)","2023-08-23","Surface mission ended (lunar night, Sept 2023)","First landing near the lunar south pole; surface composition"],
+["Apollo 11 landing site",2,0.67,23.47,"NASA (USA)","1969-07-20","Historic site only — no active hardware","First crewed Moon landing"]];
+let selR=-1;
+function surfPos(lat,lon,r){const la=lat*D2R,lo=lon*D2R;return new THREE.Vector3(Math.cos(la)*Math.cos(lo),Math.sin(la),-Math.cos(la)*Math.sin(lo)).multiplyScalar(r)}
+function roverPanel(i){const r=SURF[i];showInfo(r[0],"Surface · "+B[r[1]][0]+(r[6]=="Active"?" (active)":""),
+  "<dl><dt>Operator</dt><dd>"+esc(r[4])+"</dd><dt>Landed</dt><dd>"+esc(r[5])+"</dd><dt>Status</dt><dd>"+esc(r[6])+"</dd><dt>Purpose</dt><dd>"+esc(r[7])+"</dd></dl><small>Fixed surface position; 3D model is a generic stand-in.</small>")}
+function selectRover(i){closeInfo();selR=i;roverPanel(i);
+  if(realModelFor(SURF[i][0].toUpperCase())){model=makeModel({name:SURF[i][0]});scene.add(model)}
+  setFollow(true,.05)}
+
 
 /* ---------- camera ---------- */
 const view={az:.6,el:.35,dist:3.2,goal:3.2,t:new THREE.Vector3()},el=renderer.domElement,ptrs=new Map();let moved=0;
@@ -140,7 +168,7 @@ const zoom=f=>{const lim=focus==2?400:150;if(!follow&&focus>=0&&f>1&&view.goal>=
   view.goal=follow?Math.max(.02,Math.min(40,view.goal*f)):focus<0?Math.max(3,Math.min(6000,view.goal*f)):Math.max(1.15,Math.min(lim,view.goal*f))};
 addEventListener("resize",()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()});
 const home=()=>focus==-1?420:focus==-2?25:focus==5?5.5:3.2;
-function setFollow(on,g){follow=on&&(sel>=0||selM>=0||selS>=0);view.goal=follow?(g||.06):home();$("glb").textContent=follow?"Zoom out":"Follow";$("glb").style.display=(sel>=0||selM>=0||selS>=0)?"inline-block":"none"}
+function setFollow(on,g){follow=on&&(sel>=0||selM>=0||selS>=0||selR>=0);view.goal=follow?(g||.06):home();$("glb").textContent=follow?"Zoom out":"Follow";$("glb").style.display=(sel>=0||selM>=0||selS>=0||selR>=0)?"inline-block":"none"}
 const fgoal=()=>selM>=0?Math.max(.06,getLocal(focus).moons[selM].mesh.geometry.parameters.radius*4):selS>=0?(focus<0?3:.15):.06;
 $("glb").onclick=()=>setFollow(!follow,fgoal());
 
@@ -157,7 +185,7 @@ async function getTLE(key){const k="tle:"+key;try{const c=JSON.parse(localStorag
 function parseTLE(txt,grp){const L=txt.split(/\r?\n/).map(s=>s.trimEnd()).filter(Boolean);
   for(let i=0;i+2<L.length;i+=3){const id=+L[i+1].substring(2,7);if(byId.has(id))continue;
     try{const s={name:L[i].trim(),id,l1:L[i+1],l2:L[i+2],rec:satellite.twoline2satrec(L[i+1],L[i+2]),grp,deb:DEBRIS.includes(grp)};byId.set(id,s);sats.push(s)}catch(e){}}}
-async function loadKeys(key){curKey=key;$("grp").value=key;if(focus!=2)setFocus(2);closeInfo();$("stat").textContent="Loading "+key+"…";
+async function loadKeys(key){curKey=key;$("grp").value=key;if(sel>=0)closeInfo();$("stat").textContent="Loading "+key+"…";
   const keys=key=="everything"?["active",...DEBRIS]:key=="debris"?DEBRIS:[key];sats=[];byId=new Map();
   const r=await Promise.allSettled(keys.map(getTLE));r.forEach((x,i)=>{if(x.status=="fulfilled")parseTLE(x.value,keys[i])});
   if(!sats.length){$("stat").textContent="Could not reach CelesTrak. Check your connection and retry.";return}
@@ -179,7 +207,7 @@ const tmp=new THREE.Vector3();
 function scr(v,c){tmp.copy(v).project(cam);if(tmp.z>1)return null;return[(tmp.x+1)/2*innerWidth-c[0],(1-tmp.y)/2*innerHeight-c[1]]}
 function pick(cx,cy){const c=[cx,cy],cp=cam.position;let best=null,bd=20*20;const test=(v,fn)=>{const d=scr(v,c);if(d){const q=d[0]*d[0]+d[1]*d[1];if(q<bd){bd=q;best=fn}}};
   if(focus<0){B.forEach((b,i)=>test(sm[i].position,()=>{setFocus(i);planetPanel(i)}));SC.forEach((s,i)=>s[5]<0&&test(scW[i],()=>selectSC(i)));return best&&best()}
-  const g=getLocal(focus);g.moons.forEach((o,k)=>test(o.w,()=>selectMoon(k)));SC.forEach((s,i)=>s[5]==focus&&test(scW[i],()=>selectSC(i)));
+  const g=getLocal(focus);g.moons.forEach((o,k)=>test(o.w,()=>selectMoon(k)));SC.forEach((s,i)=>s[5]==focus&&test(scW[i],()=>selectSC(i)));g.rv.forEach(o=>test(o.w,()=>selectRover(o.k)));
   if(focus==2)for(let i=0;i<sats.length;i++){const x=pos[i*3],y=pos[i*3+1],z=pos[i*3+2];if(x>1e4)continue;if(x*cp.x+y*cp.y+z*cp.z<1&&x*x+y*y+z*z<4)continue;test(tmp.set(x,y,z).clone(),()=>select(i))}
   if(best)best()}
 
@@ -192,8 +220,11 @@ const SC=[[-74,"Mars Reconnaissance Orbiter","NASA","2005-08-12","High-resolutio
 [-21,"SOHO","ESA/NASA","1995-12-02","Solar observatory at Sun–Earth L1",2],[-31,"Voyager 1","NASA","1977-09-05","Interstellar mission",-1],[-32,"Voyager 2","NASA","1977-08-20","Outer planets and interstellar mission",-1],
 [-98,"New Horizons","NASA","2006-01-19","Pluto flyby and Kuiper Belt",-1],[-96,"Parker Solar Probe","NASA","2018-08-12","Closest-ever solar passes",-1],[-144,"Solar Orbiter","ESA/NASA","2020-02-10","Sun and heliosphere",-1],
 [-49,"Lucy","NASA","2021-10-16","Jupiter Trojan asteroids",-1],[-255,"Psyche","NASA","2023-10-13","Metal-rich asteroid Psyche",-1],[-159,"Europa Clipper","NASA","2024-10-14","Jupiter's moon Europa",-1],
-[-28,"JUICE","ESA","2023-04-14","Jupiter's icy moons",-1],[-121,"BepiColombo","ESA/JAXA","2018-10-20","Mercury orbiter mission",-1]];
-const AG={NASA:"https://www.nasa.gov/",ESA:"https://www.esa.int/"},CEN=[199,299,399,499,599,699,799,899];
+[-28,"JUICE","ESA","2023-04-14","Jupiter's icy moons",-1],[-121,"BepiColombo","ESA/JAXA","2018-10-20","Mercury orbiter mission",-1],
+// non-US missions with a public NASA/JPL Horizons entry; IDs below are my best record and are unconfirmed — if one is wrong the status chip will simply show fewer "live" spacecraft
+[-152,"Aditya-L1","ISRO (India)","2023-09-02","Solar observatory at Sun–Earth L1",-1],[-3,"Chandrayaan-2 Orbiter","ISRO (India)","2019-07-22","Lunar mapping (orbits the Moon)",2],
+[-37,"Hayabusa2","JAXA (Japan)","2014-12-03","Asteroid sample return (extended mission)",-1],[-212,"Tianwen-1 (orbiter)","CNSA (China)","2020-07-23","Mars orbiter and relay",3]];
+const AG={NASA:"https://www.nasa.gov/","ISRO (India)":"https://www.isro.gov.in/","JAXA (Japan)":"https://global.jaxa.jp/","CNSA (China)":"https://www.cnsa.gov.cn/english/",ESA:"https://www.esa.int/"},CEN=[199,299,399,499,599,699,799,899];
 let scd={};const scW=SC.map(()=>new THREE.Vector3());
 const scSolar=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({color:0xffb347,size:7,sizeAttenuation:false,map:dot,alphaTest:.4,transparent:true}));scSolar.frustumCulled=false;solar.add(scSolar);
 async function loadSC(){try{scd=await(await fetchT("/api/sc?q="+SC.map(s=>s[0]+":"+(s[5]<0?10:CEN[s[5]])).join(","),120000)).json();$("stat").textContent+=" · "+Object.keys(scd).length+" spacecraft live"}catch(e){$("stat").textContent+=" · spacecraft offline (run server.py)"}}
@@ -204,9 +235,10 @@ function scPos(i,ms,o){const d=scd[SC[i][0]];if(!d||d.p.length<2)return false;le
 function updSC(ms){const g=solar.visible?null:getLocal(focus),pt=g?g.sp:scSolar,idx=[];SC.forEach((s,i)=>{if(s[5]==(g?focus:-1))idx.push(i)});
   let a=pt.geometry.attributes.position;if(!a||a.count!=idx.length){pt.geometry.setAttribute("position",new THREE.BufferAttribute(new Float32Array(idx.length*3),3));a=pt.geometry.attributes.position}
   idx.forEach((i,k)=>{if(!scPos(i,ms,scW[i]))scW[i].set(1e5,1e5,1e5);a.setXYZ(k,scW[i].x,scW[i].y,scW[i].z)});a.needsUpdate=true;pt.visible=idx.length>0}
-function selectSC(i){closeInfo();selS=i;const s=SC[i];
-  showInfo(s[1],"Spacecraft · "+s[2],"<div id='live'></div><dl><dt>Launched</dt><dd>"+s[3]+"</dd><dt>Purpose</dt><dd>"+esc(s[4])+"</dd><dt>Position source</dt><dd>NASA JPL Horizons (live ephemeris)</dd></dl><a class='b' target='_blank' rel='noopener' href='"+AG[s[2].split('/')[0]]+"'>Agency site</a><br><small>3D model is a generic stand-in.</small>");
-  model=makeModel({sc:1,name:""});model.scale.setScalar(focus<0?.25:.016);scene.add(model);setFollow(true,fgoal())}
+function selectSC(i){closeInfo();selS=i;const s=SC[i],real=realModelFor(s[1].toUpperCase());
+  const site=AG[s[2]]||AG[s[2].split('/')[0]];
+  showInfo(s[1],"Spacecraft · "+s[2],"<div id='live'></div><dl><dt>Launched</dt><dd>"+s[3]+"</dd><dt>Purpose</dt><dd>"+esc(s[4])+"</dd><dt>Position source</dt><dd>NASA JPL Horizons (live ephemeris)</dd></dl>"+(site?"<a class='b' target='_blank' rel='noopener' href='"+site+"'>Agency site</a><br>":"")+(real?"<small>3D model: NASA 3D Resources.</small>":"<small>3D model is a generic stand-in.</small>"));
+  model=makeModel({sc:1,name:s[1]});if(!real)model.scale.setScalar(focus<0?.25:.016);scene.add(model);setFollow(true,fgoal())}
 /* ---------- labels & dock ---------- */
 const LB=["Sun",...B.map(b=>b[0])].map(n=>{const e=document.createElement("span");e.className="lb";e.textContent=n;$("labels").append(e);return e});
 function updLabels(){cam.updateMatrixWorld();LB.forEach((e,k)=>{if(!solar.visible){e.style.display="none";return}tmp.copy(k?sm[k-1].position:new THREE.Vector3()).project(cam);
@@ -218,7 +250,7 @@ const safeUrl=u=>/^https?:\/\//i.test(u||"")?u:null;
 function showInfo(title,sub,html){$("info").style.display="block";$("ib").innerHTML="<h2>"+esc(title)+"</h2><div class='sub'>"+esc(sub)+"</div>"+html}
 function planetPanel(i){const b=B[i],p=kep(b[4],(Date.now()/864e5-10957.5)/36525),a=b[4][0];
   showInfo(b[0],"Planet",`<dl><dt>Distance from Sun</dt><dd>${Math.hypot(...p).toFixed(3)} AU (live)</dd><dt>Radius</dt><dd>${b[1].toLocaleString()} km</dd><dt>Rotation</dt><dd>${Math.abs(b[3]).toFixed(1)} h${b[3]<0?" (retrograde)":""}</dd><dt>Orbital period</dt><dd>${(Math.pow(a,1.5)).toFixed(2)} years</dd><dt>Eccentricity</dt><dd>${b[4][2].toFixed(3)}</dd><dt>Inclination</dt><dd>${b[4][4].toFixed(2)}°</dd><dt>Listed moons</dt><dd>${M.filter(m=>m[1]==i).map(m=>m[0]).join(", ")||"none"}</dd></dl><small>Position: JPL approximate Keplerian elements (valid 1800–2050). Planet sizes in Solar System view are exaggerated; orbits are to scale.</small>`)}
-function selectMoon(k){const m=getLocal(focus).moons[k].d;closeInfo();selM=k;if(m[0]=="Moon"&&!LQ){const u=getLocal(focus).moons[k].mesh.material.uniforms;if(u)u.day.value=tex(TP("8k_moon.jpg"))}
+function selectMoon(k){const m=getLocal(focus).moons[k].d;closeInfo();selM=k;
   showInfo(m[0],"Moon of "+B[m[1]][0],`<dl><dt>Orbit radius</dt><dd>${m[2].toLocaleString()} km</dd><dt>Period</dt><dd>${m[3]} days</dd><dt>Radius</dt><dd>${m[4].toLocaleString()} km</dd></dl><small>${m[0]=="Moon"?"Position: low-precision lunar theory (good to ~1°).":"Position: circular mean-motion model — illustrative, phase not exact."}</small>`);
   setFollow(true,Math.max(.06,m[4]/B[m[1]][1]*4))}
 const cache={};
@@ -241,7 +273,7 @@ function select(i){closeInfo();sel=i;const s=sats[i];
   orbitLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(q),new THREE.LineBasicMaterial({color:0xffb347,transparent:true,opacity:.7}));scene.add(orbitLine);
   showInfo(s.name,"NORAD "+s.id,"<div id='live'></div><div id='meta'><small>Loading catalog data…</small></div><div id='ver'><small>Verifying against other sources…</small></div>");
   setFollow(true);loadMeta(s).then(m=>{if(sel==i)renderMeta(s,m)});verify(s).then(v=>{if(sel==i)renderVer(s,v)})}
-function closeInfo(){$("info").style.display="none";marker.visible=false;sel=selM=selS=-1;if(orbitLine){scene.remove(orbitLine);orbitLine=null}if(model){scene.remove(model);model=null}setFollow(false)}
+function closeInfo(){$("info").style.display="none";marker.visible=false;sel=selM=selS=selR=-1;if(orbitLine){scene.remove(orbitLine);orbitLine=null}if(model){scene.remove(model);model=null}setFollow(false)}
 $("x").onclick=closeInfo;
 async function loadMeta(s){if(cache[s.id])return cache[s.id];
   const[a,b]=await Promise.allSettled([fetchT(CT+"satcat/records.php?CATNR="+s.id+"&FORMAT=json").then(r=>r.json()),fetchT("https://db.satnogs.org/api/satellites/?format=json&norad_cat_id="+s.id).then(r=>r.json())]);
@@ -264,6 +296,7 @@ function showResults(v){const items=[];
   B.forEach((b,i)=>b[0].toUpperCase().includes(v)&&items.push({t:b[0],s:"Planet",f:()=>{setFocus(i);planetPanel(i)}}));
   if("SUN".includes(v))items.push({t:"Sun",s:"Star",f:()=>{setFocus(-2);showInfo("Sun","Star","<dl><dt>Radius</dt><dd>695,700 km</dd><dt>Type</dt><dd>G2V star</dd></dl>")}});
   M.forEach(m=>m[0].toUpperCase().includes(v)&&items.push({t:m[0],s:"Moon of "+B[m[1]][0],f:()=>{if(focus!=m[1])setFocus(m[1]);selectMoon(getLocal(m[1]).moons.findIndex(o=>o.d==m))}}));
+  SURF.forEach((r,k)=>r[0].toUpperCase().includes(v)&&items.push({t:r[0],s:"Surface · "+B[r[1]][0]+" · "+r[4],f:()=>{if(focus!=r[1])setFocus(r[1]);selectRover(k)}}));
   SC.forEach((s,i)=>s[1].toUpperCase().includes(v)&&items.push({t:s[1],s:"Spacecraft · "+s[2],f:()=>{setFocus(s[5]<0?-1:s[5]);selectSC(i)}}));
   for(let i=0;i<sats.length&&items.length<300;i++)if(sats[i].name.toUpperCase().includes(v)){const s=sats[i];items.push({t:s.name,s:"NORAD "+s.id+(s.deb?" · debris":""),f:()=>{if(focus!=2)setFocus(2);select(i)}})}
   res.textContent="";
@@ -297,8 +330,10 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min(.1,(t-last)/100
     if(focus==2){sv.set(sun.x,sun.z,-sun.y);g.body.rotation.y=gm}
     else{const p=pp[focus];sv.set(-p[0],-p[2],p[1]).normalize();g.body.rotation.y=ms/36e5/B[focus][3]*6.2832}
     dirLight.position.copy(sv).multiplyScalar(10);atmos.forEach(q=>q.material.uniforms.sun.value.copy(sv));g.body.material.uniforms.sun.value.copy(sv);sunGlow.position.copy(cam.position).addScaledVector(sv,18000);sunCore.position.copy(sunGlow.position);const a=g.mp.geometry.attributes.position;
-    g.moons.forEach((o,k)=>{moonVec(o.d,days,o.mesh.position);o.w.copy(o.mesh.position).applyQuaternion(g.tilt.quaternion);if(o.mesh.material.uniforms)o.mesh.material.uniforms.sun.value.copy(sv);a.setXYZ(k,o.mesh.position.x,o.mesh.position.y,o.mesh.position.z)});a.needsUpdate=true;
+    g.moons.forEach((o,k)=>{moonVec(o.d,days,o.mesh.position);o.w.copy(o.mesh.position).applyQuaternion(g.tilt.quaternion);if(o.mesh.material.uniforms)o.mesh.material.uniforms.sun.value.copy(sv);a.setXYZ(k,o.mesh.position.x,o.mesh.position.y,o.mesh.position.z)});a.needsUpdate=true;g.rv.forEach(o=>o.w.copy(o.mesh.position).applyQuaternion(g.tilt.quaternion));
     if(selM>=0){satV.copy(g.moons[selM].w);have=true}
+    if(selR>=0){const o=g.rv.find(x=>x.k==selR);if(o){satV.copy(o.w);have=true;
+      if(model){model.position.copy(o.w);model.quaternion.setFromUnitVectors(upV.set(0,1,0),xV.copy(o.w).normalize())}}}
     if(focus==2&&sats.length)stepSats(3)}
   updSC(ms);
   if(selS>=0){const i=selS,s=SC[i],d=scd[s[0]];satV.copy(scW[i]);model.position.copy(satV);model.visible=true;have=true;
